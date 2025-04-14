@@ -21,7 +21,8 @@ long_options = ["cardsets=",
 "suspended=",
 "collection",
 "authtoken",
-"locale="]
+"locale=",
+"scrape"]
 
 AlteredAPI = {
     'endpoint': "https://api.altered.gg",
@@ -95,10 +96,10 @@ keywords = ("RESUPPLY",
  
 dbName = "pyAltered.db"
 
-cardValueMin = 0
-cardValueMax = 10
-
 def main(argv):
+    card_value_min = 0
+    card_value_max = 10
+    
     Prepare_Database()
     
     try:
@@ -160,35 +161,35 @@ def main(argv):
             if values != "":
                 argList = values.upper().split(",")
                 for listValue in argList:
-                    if cardValueMin <= listValue.int() <= cardValueMax:
+                    if card_value_min <= listValue.int() <= card_value_max:
                         web_request_add_params_scrape(f"mainCost[]={listValue}")                               
  
         if arguments == '--reservecost':
             if values != "":
                 argList = values.upper().split(",")
                 for listValue in argList:
-                    if cardValueMin <= listValue.int() <= cardValueMax:
+                    if card_value_min <= listValue.int() <= card_value_max:
                         web_request_add_params_scrape(f"recallCost[]={listValue}")  
                         
         if arguments == '--forestpower':
             if values != "":
                 argList = values.upper().split(",")
                 for listValue in argList:
-                    if cardValueMin <= int(listValue) <= cardValueMax:
+                    if card_value_min <= int(listValue) <= card_value_max:
                         web_request_add_params_scrape(f"forestPower[]={listValue}")
                         
         if arguments == '--mountainpower':
             if values != "":
                 argList = values.upper().split(",")
                 for listValue in argList:
-                    if cardValueMin <= int(listValue) <= cardValueMax:
+                    if card_value_min <= int(listValue) <= card_value_max:
                         web_request_add_params_scrape(f"mountainPower[]={listValue}")
                         
         if arguments == '--oceanpower':
             if values != "":
                 argList = values.upper().split(",")
                 for listValue in argList:
-                    if cardValueMin <= int(listValue) <= cardValueMax:
+                    if card_value_min <= int(listValue) <= card_value_max:
                         web_request_add_params_scrape(f"oceanPower[]={listValue}")   
                         
         if arguments == '--keyword':
@@ -302,7 +303,7 @@ def Add_Cards(cards):
             }
         )
         
-    with sqlite3.connect("pyAltered.db") as dbFile:
+    with sqlite3.connect(dbName) as dbFile:
         db = dbFile.cursor()
         db.execute('BEGIN TRANSACTION')
         sql = '''INSERT INTO cards (
@@ -360,7 +361,7 @@ def Add_Rulings(cardRulings):
         )
         rule_string.append(rule['@id'])
     
-    with sqlite3.connect("pyAltered.db") as dbFile:
+    with sqlite3.connect(dbName) as dbFile:
         db = dbFile.cursor()
         db.execute('BEGIN TRANSACTION')
         sql = '''INSERT INTO rulings (
