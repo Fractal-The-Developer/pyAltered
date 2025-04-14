@@ -260,6 +260,7 @@ def Prepare_Database():
                     cardRulings TEXT NOT NULL
                 )
             ''')
+            db.execute("CREATE UNIQUE INDEX cards_api_id ON cards(api_id)")
             db.execute('''
                 CREATE TABLE IF NOT EXISTS rulings (
                     ruling_id TEXT PRIMARY KEY NOT NULL,
@@ -269,6 +270,7 @@ def Prepare_Database():
                     answer TEXT NOT NULL
                 )
             ''')
+            db.execute("CREATE UNIQUE INDEX rulings_ruling_id ON ruling_id")
             dbFile.commit()
         except sqlite3.Error as e:
             print(f"An error occurred: {e}")
@@ -303,7 +305,7 @@ def Add_Cards(cards):
     with sqlite3.connect("pyAltered.db") as dbFile:
         db = dbFile.cursor()
         db.execute('BEGIN TRANSACTION')
-        sql = '''INSERT OR REPLACE INTO cards (
+        sql = '''INSERT INTO cards (
                 api_id,
                 reference,
                 name,
@@ -338,7 +340,7 @@ def Add_Cards(cards):
             :forestPower, 
             :isSuspended,
             :cardEffects,
-            :cardRulings)'''
+            :cardRulings) ON CONFLICT(api_id) DO NOTHING'''
         db.executemany(sql,preparedCards)
         dbFile.commit()
         
@@ -361,7 +363,7 @@ def Add_Rulings(cardRulings):
     with sqlite3.connect("pyAltered.db") as dbFile:
         db = dbFile.cursor()
         db.execute('BEGIN TRANSACTION')
-        sql = '''INSERT OR REPLACE INTO rulings (
+        sql = '''INSERT INTO rulings (
             ruling_id,
             format,
             created_at,
@@ -372,7 +374,7 @@ def Add_Rulings(cardRulings):
             :format,
             :created_at,
             :question,
-            :answer)'''
+            :answer) ON CONFLICT(ruling_id) DO NOTHING'''
         db.executemany(sql,preparedRulings)
         dbFile.commit()
     
