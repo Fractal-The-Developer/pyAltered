@@ -22,7 +22,8 @@ long_options = ["cardsets=",
 "collection",
 "authtoken",
 "locale=",
-"scrape"]
+"scrape",
+"cube"]
 
 AlteredAPI = {
     'endpoint': "https://api.altered.gg",
@@ -31,76 +32,23 @@ AlteredAPI = {
     'httpRequest': '',
     'response': '',
     'bearerToken': '',
-    'locale': 'en-us'
+    'locale': 'en-us',
+    'card_sets': ("COREKS","CORE","ALIZE"),
+    'factions': ("AX","BR","YZ","OR","MU","LY"),
+    'rarities': ("COMMON","RARE","UNIQUE"),
+    'card_types': ("TOKEN_MANA","HERO","CHARACTER","TOKEN","PERMANENT","SPELL","LANDMARK_PERMANENT","EXPEDITION_PERMANENT"),
+    'card_subtypes': ("ADVENTURER", "ANIMAL", "APPRENTICE", "ARTIST", "BOON", "BUREAUCRAT", "CITIZEN", "COMPANION", "CONJURATION", "DEITY", "DISRUPTION", "DRAGON", "DRUID", "ELEMENTAL", "ENGINEER", "FAIRY","GEAR","LANDMARK","LEVIATHAN","MAGE","MANEUVER","MESSENGER","NOBLE","PLANT","ROBOT","SCHOLAR","SOLDIER","SONG","SPIRIT","TITAN","TRAINER"),
+    'keywords': ("RESUPPLY","SEASONED","BOOSTED","BRASSBUG","SABOTAGE","BOODA","ORDIS_RECRUIT","GIGANTIC","TOUGH_1","TOUGH_2","TOUGH_X","DEFENDER","ETERNAL","AFTER_YOU","MAW","ANCHORED","FLEETING","ASLEEP")
 }
 
-cardTypes = ("TOKEN_MANA",
-"HERO",
-"CHARACTER",
-"TOKEN",
-"PERMANENT",
-"SPELL",
-"LANDMARK_PERMANENT",
-"EXPEDITION_PERMANENT")
-
-cardSubTypes = ("ADVENTURER", 
-"ANIMAL", 
-"APPRENTICE", 
-"ARTIST", 
-"BOON", 
-"BUREAUCRAT", 
-"CITIZEN", 
-"COMPANION", 
-"CONJURATION", 
-"DEITY", 
-"DISRUPTION", 
-"DRAGON", 
-"DRUID", 
-"ELEMENTAL", 
-"ENGINEER", 
-"FAIRY",
-"GEAR",
-"LANDMARK",
-"LEVIATHAN",
-"MAGE",
-"MANEUVER",
-"MESSENGER",
-"NOBLE",
-"PLANT",
-"ROBOT",
-"SCHOLAR",
-"SOLDIER",
-"SONG",
-"SPIRIT",
-"TITAN",
-"TRAINER")
-
-keywords = ("RESUPPLY",
-"SEASONED",
-"BOOSTED",
-"BRASSBUG",
-"SABOTAGE",
-"BOODA",
-"ORDIS_RECRUIT",
-"GIGANTIC",
-"TOUGH_1",
-"TOUGH_2",
-"TOUGH_X",
-"DEFENDER",
-"ETERNAL",
-"AFTER_YOU",
-"MAW",
-"ANCHORED",
-"FLEETING",
-"ASLEEP")
- 
 dbName = "pyAltered.db"
-
+   
 def main(argv):
     card_value_min = 0
     card_value_max = 10
+    scrape_flag = False
     
-    Prepare_Database()
+    prepare_database()
     
     try:
         arguments, values = getopt.getopt(argv,short_options,long_options)
@@ -108,151 +56,122 @@ def main(argv):
         print (str(err))
         sys.exit(2)
     
-    for arguments, values in arguments:
-        if arguments == '-h':
-            print('usage: pyAltered.py [-h]')
-            print('       pyAltered.py --authtoken     [Bearer Token]')
-            print('       pyAltered.py --scrape        run in API scrape mode')
-            print('       pyAltered.py --collection    flag to scrape only cards you own')
-            print('       pyAltered.py --exclusive     [bool] flag to toggle exclusive cards in search')
-            print('       pyAltered.py --cardsets      [name] comma delimited. e.g. CORE,COREKS,ALIZE')
-            print('       pyAltered.py --rarities      [rarity] comma delimited. e.g. COMMON,RARE,UNIQUE')
-            print('       pyAltered.py --cardtype      [type] comma delimited. e.g. HERO,SPELL,TOKEN,PERMANENT')
-            print('       pyAltered.py --cardsubtype   [subtype] comma delimited. e.g. BUREAUCRAT,GEAR,DEITY')
-            print('       pyAltered.py --handcost      [0-10]')
-            print('       pyAltered.py --reserve_cost  [0-10]')
-            print('       pyAltered.py --forestpower   [0-10]')
-            print('       pyAltered.py --mountainpower [0-10]')
-            print('       pyAltered.py --oceanpower    [0-10]')        
-            print('       pyAltered.py --keyword       [keyword] comma delimited e.g. RESUPPLY,TOUGH_2,ANCHORED')
-            print('       pyAltered.py --foiled        flag to include foiled cards')
-            print('       pyAltered.py --altArt        flag to include alternate art cards')            
-            print('')
-            print('Options and arguments:')
-            print('-h               : print this help message and exit')
-            sys.exit(2)
-            
-        if arguments == "--authtoken":
-            if values != "":
-                AlteredAPI['bearerToken'] = values
-            
-        if arguments == "--cardsets":
-            if values != "":
-                setList = values.upper().split(",")
-                for listValue in setList:
-                    if listValue == "COREKS" or "CORE" or "ALIZE":
-                        web_request_add_params_scrape(f"cardSet[]={listValue}")
-                        
-        if arguments == '--factions':
-            if values != "":
-                factionList = values.upper().split(",")
-                for listValue in factionList:
-                    if listValue == "AX" or "BR" or "LY" or "MU" or "OR" or "YZ":
-                            web_request_add_params_scrape(f"factions[]={listValue}")
-                
-        if arguments == '--rarities':
-            if values != "":
-                rarityList = values.upper().split(",")
-                for listValue in rarityList:
-                    if listValue == "COMMON" or "RARE" or "UNIQUE":
-                        web_request_add_params_scrape(f"rarity[]={listValue}")             
-                        
-        if arguments == '--cardtype':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    for cardType in cardTypes:
-                        if listValue == cardType:
-                            web_request_add_params_scrape(f"cardType[]={listValue}")   
-                            
-        if arguments == '--cardsubtype':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    for subType in cardSubTypes:
-                        if listValue == subType:
-                            web_request_add_params_scrape(f"cardSubType[]={listValue}")    
+    if "-h" in arguments:
+    print('usage: pyAltered.py [-h]')
+    print('       pyAltered.py --authtoken     [Bearer Token]')
+    print('       pyAltered.py --scrape        run in API scrape mode')
+    print('       pyAltered.py --collection    flag to scrape only cards you own')
+    print('       pyAltered.py --exclusive     [bool] flag to toggle exclusive cards in search')
+    print('       pyAltered.py --cardsets      [name] comma delimited. e.g. CORE,COREKS,ALIZE')
+    print('       pyAltered.py --rarities      [rarity] comma delimited. e.g. COMMON,RARE,UNIQUE')
+    print('       pyAltered.py --cardtype      [type] comma delimited. e.g. HERO,SPELL,TOKEN,PERMANENT')
+    print('       pyAltered.py --cardsubtype   [subtype] comma delimited. e.g. BUREAUCRAT,GEAR,DEITY')
+    print('       pyAltered.py --handcost      [0-10]')
+    print('       pyAltered.py --reserve_cost  [0-10]')
+    print('       pyAltered.py --forestpower   [0-10]')
+    print('       pyAltered.py --mountainpower [0-10]')
+    print('       pyAltered.py --oceanpower    [0-10]')        
+    print('       pyAltered.py --keyword       [keyword] comma delimited e.g. RESUPPLY,TOUGH_2,ANCHORED')
+    print('       pyAltered.py --foiled        flag to include foiled cards')
+    print('       pyAltered.py --altart        flag to include alternate art cards')
+    print('       pyAltered.py --suspended     flag to include suspended cards')
+    print('       pyAltered.py --locale        [IETF language tag] e.g. en-US')            
+    print('')
+    print('Options and arguments:')
+    print('-h               : print this help message and exit')
+    sys.exit(2)
+    
+    if "-scrape" in arguments:
+        scrape_flag = True
+    
+    for option, values in arguments:
+        if values == "":
+            print(f"Option {option} is empty. Option {option} will be ignored.")
+            continue
+        else if len(arguments) > 1:
+            delimited_value = values.upper().split(",")
 
-        if arguments == '--handcost':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    if card_value_min <= listValue.int() <= card_value_max:
-                        web_request_add_params_scrape(f"mainCost[]={listValue}")                               
- 
-        if arguments == '--reservecost':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    if card_value_min <= listValue.int() <= card_value_max:
-                        web_request_add_params_scrape(f"recallCost[]={listValue}")  
-                        
-        if arguments == '--forestpower':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    if card_value_min <= int(listValue) <= card_value_max:
-                        web_request_add_params_scrape(f"forestPower[]={listValue}")
-                        
-        if arguments == '--mountainpower':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    if card_value_min <= int(listValue) <= card_value_max:
-                        web_request_add_params_scrape(f"mountainPower[]={listValue}")
-                        
-        if arguments == '--oceanpower':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    if card_value_min <= int(listValue) <= card_value_max:
-                        web_request_add_params_scrape(f"oceanPower[]={listValue}")   
-                        
-        if arguments == '--keyword':
-            if values != "":
-                argList = values.upper().split(",")
-                for listValue in argList:
-                    for word in keywords:
-                        if word == listValue:
-                            web_request_add_params_scrape(f"keyword[]={listValue}")
-                        
-        if arguments == '--foiled':
-            web_request_add_params_scrape("foiled=true")
-            
-        if arguments == '--altart':
-            web_request_add_params_scrape("altArt=true")
-            
-        if arguments == '--collection':
-            if AlteredAPI['bearerToken'] == "":
-                raise Exception("Argument --collection must be used with --authtoken to find your card collection")
-            else:
-                web_request_add_params_scrape("collection=true")
-            
-        if arguments == '--suspended':
-            if values != "":
-                argList = values.split(",")
-                for listValue in argList:
-                    if type(listValue) == bool:
-                        web_request_add_params_scrape(f"isSuspended[]={listValue}")
-                        
-        if arguments == '--exclusive':
-            if values != "":
-                argList = values.split(",")
-                for listValue in argList:
-                    if type(listValue) == bool:
-                        web_request_add_params_scrape(f"isExclusive[]={listValue}")
-                        
-        if arguments == '--locale':
-            if values != "":
+        if scrape_flag == True:
+            if option == "--authtoken":
+                AlteredAPI['bearerToken'] = values
+                
+            if option == '--foiled':
+                web_request_add_params_scrape("foiled=true")
+                
+            if option == '--altart':
+                web_request_add_params_scrape("altArt=true")
+                
+            if option == "--suspended":
+                web_request_add_params_scrape(f"isSuspended[]={result}")
+                
+            if option == "--exclusive":
+                web_request_add_params_scrape(f"isExclusive[]={result}")
+                
+            if option == "--locale":
                 AlteredAPI['locale'] = values
-                        
+                web_request_add_params_scrape(f"locale[]={result}") 
+                
+            if option == "--cardsets":
+                result = compare_to_api_table(delimited_value, AlteredAPI['card_sets'])
+                if result != None:
+                    web_request_add_params_scrape(f"cardSet[]={result}")
+                    
+            if option == "--factions":
+                result = compare_to_api_table(delimited_value, AlteredAPI['factions'])
+                if result != None:
+                    web_request_add_params_scrape(f"factions[]={result}")
+                    
+            if option == "--rarities":
+                result = compare_to_api_table(delimited_value, AlteredAPI['rarities'])
+                if result != None:
+                    web_request_add_params_scrape(f"rarity[]={result}")
+                   
+            if option == "--cardtype":
+                result = compare_to_api_table(delimited_value, AlteredAPI['card_types'])
+                if result != None:
+                    web_request_add_params_scrape(f"cardType[]={result}")  
+                    
+            if option == "--cardsubtype":
+                result = compare_to_api_table(delimited_value, AlteredAPI['card_subtypes'])
+                if result != None:
+                    web_request_add_params_scrape(f"cardSubType[]={result}")
+
+            if option == "--keyword":
+                result = compare_to_api_table(delimited_value, AlteredAPI['keywords'])
+                if result != None:
+                    web_request_add_params_scrape(f"keyword[]={result}")
+
+            if option = "--collection":
+                web_request_add_params_scrape("collection=true") 
+                    
+            if option == "--handcost":
+                if value_in_range(values.int(),card_value_min,card_value_max):
+                    web_request_add_params_scrape(f"mainCost[]={result}")     
+                    
+            if option == "--reservecost":
+                if value_in_range(values.int(),card_value_min,card_value_max):
+                    web_request_add_params_scrape(f"recallCost[]={result}")
+
+            if option == "--forestpower":
+                if value_in_range(values.int(),card_value_min,card_value_max):
+                    web_request_add_params_scrape(f"forestPower[]={result}")   
+                    
+            if option == "--mountainpower":
+                if value_in_range(values.int(),card_value_min,card_value_max):
+                    web_request_add_params_scrape(f"mountainPower[]={result}") 
+                    
+            if option == "--oceanpower":
+                if value_in_range(values.int(),card_value_min,card_value_max):
+                    web_request_add_params_scrape(f"oceanPower[]={result}")
+        
+        
     web_request_add_headers()
     web_request_send()
     build_card_list()
     print("Complete!")
 
 
-def Prepare_Database():
+def prepare_database():
     with sqlite3.connect(dbName) as dbFile:
         db = dbFile.cursor()
         try:
@@ -293,7 +212,7 @@ def Prepare_Database():
             print(f"An error occurred: {e}")
         
 
-def Add_Cards(cards):
+def add_cards(cards):
     preparedCards = []
     for card in cards:
         #print(card['name'])
@@ -361,7 +280,7 @@ def Add_Cards(cards):
         db.executemany(sql,preparedCards)
         dbFile.commit()
         
-def Add_Rulings(cardRulings):
+def add_rulings(cardRulings):
     preparedRulings = []
     rule_string = []
     
@@ -397,6 +316,27 @@ def Add_Rulings(cardRulings):
     
     rule_string = ",".join(rule_string)
     return rule_string
+
+def build_card_list():
+    extractedCards = AlteredAPI['response']['hydra:member']
+    pages = AlteredAPI['response']['hydra:view']
+    
+    if pages['@id'] != pages['hydra:last']:
+        web_request_add_params_cardeffect(extractedCards)
+        add_cards(extractedCards)
+        web_request_replace_params(pages['hydra:next'])
+        web_request_add_headers()
+        web_request_send()
+        build_card_list()
+        
+def compare_to_api_table(value, table):
+    for entry in table:
+        if value == entry:
+            return value
+    return None
+    
+def value_in_range(value,min_range,max_range)
+    return(min_range <= value <= max_range)
     
 def web_request_add_params_scrape(param):
     if AlteredAPI['parameters'] == '':
@@ -414,7 +354,7 @@ def web_request_add_params_cardeffect(cards):
         web_request_add_headers()
         current_response = web_request_send()
         
-        card['cardRulings'] = Add_Rulings(current_response['cardRulings'])
+        card['cardRulings'] = add_rulings(current_response['cardRulings'])
         if 'MAIN_EFFECT' in current_response['elements']:
             card['cardEffects'] = current_response['elements']['MAIN_EFFECT']
         else:
@@ -422,19 +362,6 @@ def web_request_add_params_cardeffect(cards):
         
     web_request_replace_params(previous_parameters)
     AlteredAPI['response'] = previous_response
-    
-      
-def build_card_list():
-    extractedCards = AlteredAPI['response']['hydra:member']
-    pages = AlteredAPI['response']['hydra:view']
-    
-    if pages['@id'] != pages['hydra:last']:
-        web_request_add_params_cardeffect(extractedCards)
-        Add_Cards(extractedCards)
-        web_request_replace_params(pages['hydra:next'])
-        web_request_add_headers()
-        web_request_send()
-        build_card_list()
     
 def web_request_replace_params(new_params):
     AlteredAPI['parameters'] = new_params
